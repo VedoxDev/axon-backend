@@ -35,7 +35,7 @@ src/
 ```
 
 ## Requisitos para ejecutar 🧪
-- Node.js 18+
+- Node.js v22.12.0 
 - PostgreSQL (configurar variables en `.env`)
 
 ## Instalación ⚙️
