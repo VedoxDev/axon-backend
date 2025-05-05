@@ -14,13 +14,25 @@ export class ValidateBodyPipe implements PipeTransform {
     ) {}
     
     transform(value: any, metadata: ArgumentMetadata) {
+        // Only process body parameters
+        if (metadata.type !== 'body') {
+            return value;
+        }
+
         const { 
             requiredFields,
             dto,
         } = this.options;
 
+        console.log('Received value:', value);
+        console.log('Required fields:', requiredFields);
+        console.log('Value type:', typeof value);
+        
         // Check all required fields and collect missing ones
-        const missingFields = requiredFields.filter(field => value[field] === undefined);
+        const missingFields = requiredFields.filter(field => {
+            console.log(`Checking field ${field}:`, value[field]);
+            return value[field] === undefined;
+        });
         
         if (missingFields.length > 0) {
             throw new BadRequestException(

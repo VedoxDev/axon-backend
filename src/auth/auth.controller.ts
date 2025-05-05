@@ -3,10 +3,11 @@ import { UsersService } from 'src/users/users.service';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { LoginDto } from './dto/login.dto';
 import { AuthService } from './auth.service';
-import { GetUser } from './decorators/get-user.decorator';
+import { GetUser } from '../common/decorators/get-user.decorator';
 import { AuthGuard } from '@nestjs/passport';
 import { User } from 'src/users/user.entity';
 import { ValidateBodyPipe } from 'src/common/pipes/validate-body.pipe';
+import { CreateProjectDto } from 'src/projects/dto/create-project.dto';
 
 @Controller('auth')
 export class AuthController {
