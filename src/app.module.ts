@@ -5,6 +5,8 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProjectsModule } from './projects/projects.module';
+import { APP_PIPE } from '@nestjs/core';
+import { ConditionalValidationPipe } from './common/pipes/conditional-validation.pipe';
 
 // Debug environment variables
 console.log('Database Configuration:', {
@@ -32,6 +34,12 @@ console.log('Database Configuration:', {
     ProjectsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_PIPE,
+      useClass: ConditionalValidationPipe
+    }
+  ],
 })
 export class AppModule {}

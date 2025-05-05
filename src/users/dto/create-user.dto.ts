@@ -1,6 +1,8 @@
 import { Trim } from "class-sanitizer";
 import { IsEmail, IsNotEmpty, Matches, MaxLength, MinLength } from "class-validator";
+import { SkipGlobalValidation } from "src/common/decorators/skip-validation.decorator";
 
+@SkipGlobalValidation()
 export class CreateUserDto {
     
     //  EMAIL

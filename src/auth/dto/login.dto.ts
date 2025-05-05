@@ -1,6 +1,8 @@
 import { IsNotEmpty, MaxLength, MinLength } from "class-validator";
 import { IsEmail } from "class-validator";
+import { SkipGlobalValidation } from "src/common/decorators/skip-validation.decorator";
 
+@SkipGlobalValidation()
 export class LoginDto {
     @IsEmail()
     @IsNotEmpty()	
