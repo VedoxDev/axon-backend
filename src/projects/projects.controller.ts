@@ -43,7 +43,7 @@ export class ProjectsController {
     }
 
     @Post(':id/invite')
-    @UseGuards(AuthGuard("jwt"))
+    @UseGuards(AuthGuard("jwt"))    
     async inviteMember(
         @Param('id', new ParseUUIDPipe({ version: '4', errorHttpStatusCode: 400 })) projectId: string,
         @GetUser() user: User,
