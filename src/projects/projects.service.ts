@@ -47,6 +47,44 @@ export class ProjectsService {
         };   
     }
 
+    async getProject(memberUser : User, projectId : string) {
+        const project = await this.projectRepository.findOne({
+            where: { id: projectId },
+            relations: ['members', 'members.user']
+        });
+
+        if (!project) {
+            throw new NotFoundException('project-not-found');
+        }
+
+        const isMember = project.members.some(member => 
+            member.user.id === memberUser.id
+        );
+
+        if (!isMember) {
+            throw new ForbiddenException('not-authorized-to-get');
+        }
+
+        const projectMembers = await this.projectMemberRepository.find({
+            where: { project: { id: projectId } },
+            relations: ['user']
+        });
+
+        return {
+            id: project.id,
+            name: project.name,
+            description: project.description,
+            status: project.status,
+            members: projectMembers.map(member => ({
+                id: member.user.id,
+                nombre: member.user.nombre,
+                apellidos: member.user.apellidos,
+                role: member.role,
+                status: member.user.status
+            }))
+        };
+    }
+
     async getUserProjects(user : User) {
         const userProjects = await this.projectMemberRepository.find({
             where: { user : { id : user.id } }, 
