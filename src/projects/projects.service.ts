@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Project } from './entities/project.entity';
 import { ProjectMember } from './entities/project-member.entity';
 import { Repository } from 'typeorm';
-import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { User } from 'src/users/user.entity';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { InviteMemberDto } from './dto/invite-member.dto';
@@ -61,17 +60,6 @@ export class ProjectsService {
             throw new NotFoundException('project-not-found');
         }
 
-        // Verifica si el usuario es miembro del proyecto
-        const isMember = project.members.some(member => 
-            member.user.id === memberUser.id
-        );
-
-        // Si el usuario no es miembro del proyecto, lanza un error
-
-        if (!isMember) {
-            throw new ForbiddenException('not-authorized-to-get');
-        }
-
         // Busca los miembros del proyecto
         const projectMembers = await this.projectMemberRepository.find({
             where: { project: { id: projectId } },
@@ -122,17 +110,6 @@ export class ProjectsService {
             throw new NotFoundException('project-not-found');
         }
 
-        // Verifica si el invitador es propietario o administrador
-        const inviterMember = project.members.find(member => 
-            member.user.id === inviterUser.id && 
-            (member.role === 'owner' || member.role === 'admin')
-        );
-
-        // Si el invitador no es propietario o administrador, lanza un error
-        if (!inviterMember) {
-            throw new ForbiddenException('not-authorized-to-invite');
-        }
-
         // Busca el usuario a invitar - prioriza userId sobre email
         let userToInvite: User | null = null;
         
@@ -180,21 +157,6 @@ export class ProjectsService {
         // Si el proyecto no existe, lanza un error
         if (!project) {
             throw new NotFoundException('project-not-found');
-        }
-
-        // Busca el miembro del proyecto que intenta eliminar
-        const member = project.members.find(member => 
-            member.user.id === user.id
-        );
-
-        // Si el miembro no existe, lanza un error
-        if (!member) {
-            throw new ForbiddenException('not-authorized-to-delete');
-        }
-
-        // Si el miembro no es el propietario, lanza un error
-        if (member.role !== 'owner') {
-            throw new ForbiddenException('only-owner-can-delete');
         }
 
         // Elimina todos los miembros del proyecto antes de eliminar el proyecto

@@ -7,6 +7,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProjectsModule } from './projects/projects.module';
 import { APP_PIPE } from '@nestjs/core';
 import { ConditionalValidationPipe } from './common/pipes/conditional-validation.pipe';
+import { SectionsModule } from './sections/sections.module';
 
 // Debug environment variables
 console.log('Database Configuration:', {
@@ -32,6 +33,7 @@ console.log('Database Configuration:', {
       synchronize: true,
     }),
     ProjectsModule,
+    SectionsModule,
   ],
   controllers: [AppController],
   providers: [
