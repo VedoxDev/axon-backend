@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
 import { AuthGuard } from '@nestjs/passport';
 import { User } from 'src/users/user.entity';
@@ -45,10 +45,19 @@ export class ProjectsController {
     @Post(':id/invite')
     @UseGuards(AuthGuard("jwt"))
     async inviteMember(
-        @Param('id') projectId: string,
+        @Param('id', new ParseUUIDPipe({ version: '4', errorHttpStatusCode: 400 })) projectId: string,
         @GetUser() user: User,
         @Body() inviteDto: InviteMemberDto
     ) {
         return this.projectService.inviteMember(projectId, user, inviteDto);
+    }
+
+    @Delete(':id')
+    @UseGuards(AuthGuard("jwt"))
+    async deleteProject(
+        @GetUser() user : User,
+        @Param('id', new ParseUUIDPipe({ version: '4', errorHttpStatusCode: 400 })) projectId : string,
+    ) {
+        return this.projectService.deleteProject(user, projectId);
     }
 }
