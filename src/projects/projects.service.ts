@@ -157,4 +157,32 @@ export class ProjectsService {
             userId: userToInvite.id
         };
     }
+
+    async deleteProject(user : User, projectId : string) {
+        const project = await this.projectRepository.findOne({
+            where: { id: projectId }
+        });
+
+        if (!project) {
+            throw new NotFoundException('project-not-found');
+        }
+
+        const member = project.members.find(member => 
+            member.user.id === user.id
+        );
+
+        if (!member) {
+            throw new ForbiddenException('not-authorized-to-delete');
+        }
+
+        if (member.role !== 'owner') {
+            throw new ForbiddenException('only-owner-can-delete');
+        }
+
+        await this.projectRepository.remove(project);
+
+        return {
+            message: 'project-deleted-successfully'
+        };
+    }
 }
