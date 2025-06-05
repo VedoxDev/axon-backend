@@ -8,7 +8,7 @@ export class CreateProjectDto {
 
     @Trim()
     @IsNotEmpty({ message: "name-required" })
-    @MinLength(8, {
+    @MinLength(3, {
         message: "name-too-short"
     })    
     @MaxLength(100, {
