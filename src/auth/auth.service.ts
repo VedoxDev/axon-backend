@@ -15,7 +15,7 @@ export class AuthService {
     
     // Validate credentials
     async validateUser(loginDto: LoginDto) {
-        const user = await this.UsersService.findByEmail(loginDto.email);
+        const user = await this.UsersService.findByEmail(loginDto.email.toLowerCase());
 
         // User does not exist
         if (!user) {

@@ -1,6 +1,7 @@
 import { Trim } from "class-sanitizer";
 import { IsEmail, IsNotEmpty, Matches, MaxLength, MinLength } from "class-validator";
 import { SkipGlobalValidation } from "src/common/decorators/skip-validation.decorator";
+import { Transform } from "class-transformer";
 
 @SkipGlobalValidation()
 export class CreateUserDto {
@@ -10,6 +11,7 @@ export class CreateUserDto {
     @IsNotEmpty({ message: "email-required"})
     @MaxLength(254, { message: "email-too-long"})
     @IsEmail()
+    @Transform(({ value }) => value.toLowerCase())
     email: string;
 
     //  NAME
