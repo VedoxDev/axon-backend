@@ -1,6 +1,9 @@
 import * as dotenv from "dotenv";
 dotenv.config();
 
+// Set timezone to Spanish time before anything else
+process.env.TZ = 'Europe/Madrid';
+
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 

@@ -3,11 +3,12 @@ import { SectionsController } from './sections.controller';
 import { SectionsService } from './sections.service';
 import { TaskSection } from './entities/task-section.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ProjectsModule } from '../projects/projects.module';
+import { Project } from '../projects/entities/project.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([TaskSection]), ProjectsModule],
+  imports: [TypeOrmModule.forFeature([TaskSection, Project])],
   controllers: [SectionsController],
-  providers: [SectionsService]
+  providers: [SectionsService],
+  exports: [SectionsService, TypeOrmModule]
 })
 export class SectionsModule {}

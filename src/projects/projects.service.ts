@@ -2,11 +2,15 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { InjectRepository } from '@nestjs/typeorm';
 import { Project } from './entities/project.entity';
 import { ProjectMember } from './entities/project-member.entity';
+import { ProjectInvitation } from './entities/project-invitation.entity';
 import { Repository } from 'typeorm';
 import { User } from 'src/users/user.entity';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { InviteMemberDto } from './dto/invite-member.dto';
+import { RespondInvitationDto } from './dto/respond-invitation.dto';
 import { UsersService } from 'src/users/users.service';
+import { SectionsService } from 'src/sections/sections.service';
+import { CreateSectionDto, UpdateSectionDto, ReorderSectionsDto } from 'src/sections/dto/create-section.dto';
 
 @Injectable()
 export class ProjectsService {
@@ -16,7 +20,10 @@ export class ProjectsService {
         private readonly projectRepository : Repository<Project>,
         @InjectRepository(ProjectMember)
         private readonly projectMemberRepository : Repository<ProjectMember>,
-        private readonly usersService: UsersService
+        @InjectRepository(ProjectInvitation)
+        private readonly projectInvitationRepository : Repository<ProjectInvitation>,
+        private readonly usersService: UsersService,
+        private readonly sectionsService: SectionsService
     ) {}
 
     
@@ -132,17 +139,33 @@ export class ProjectsService {
             throw new BadRequestException('user-already-member');
         }
 
-        // Crea un nuevo miembro del proyecto
-        const newMember = this.projectMemberRepository.create({
-            project,
-            user: userToInvite,
-            role: 'member'
+        // Verifica si ya existe una invitación pendiente
+        const existingInvitation = await this.projectInvitationRepository.findOne({
+            where: { 
+                project: { id: projectId },
+                invitedUser: { id: userToInvite.id },
+                status: 'pending'
+            }
         });
 
-        await this.projectMemberRepository.save(newMember);
+        if (existingInvitation) {
+            throw new BadRequestException('invitation-already-pending');
+        }
+
+        // Crea una nueva invitación en lugar de añadir directamente como miembro
+        const invitation = this.projectInvitationRepository.create({
+            project,
+            invitedUser: userToInvite,
+            inviterUser: inviterUser,
+            role: 'member',
+            status: 'pending'
+        });
+
+        await this.projectInvitationRepository.save(invitation);
 
         return {
-            message: 'member-invited-successfully',
+            message: 'invitation-sent-successfully',
+            invitationId: invitation.id,
             userId: userToInvite.id
         };
     }
@@ -168,5 +191,109 @@ export class ProjectsService {
         return {
             message: 'project-deleted-successfully'
         };
+    }
+
+    async getUserInvitations(user: User) {
+        // Busca todas las invitaciones pendientes para el usuario
+        const invitations = await this.projectInvitationRepository.find({
+            where: { 
+                invitedUser: { id: user.id },
+                status: 'pending'
+            },
+            relations: ['project', 'inviterUser']
+        });
+
+        return invitations.map(invitation => ({
+            id: invitation.id,
+            project: {
+                id: invitation.project.id,
+                name: invitation.project.name,
+                description: invitation.project.description
+            },
+            inviter: {
+                id: invitation.inviterUser.id,
+                nombre: invitation.inviterUser.nombre,
+                apellidos: invitation.inviterUser.apellidos
+            },
+            role: invitation.role,
+            createdAt: invitation.createdAt
+        }));
+    }
+
+    async respondToInvitation(user: User, invitationId: string, respondDto: RespondInvitationDto) {
+        // Busca la invitación
+        const invitation = await this.projectInvitationRepository.findOne({
+            where: { 
+                id: invitationId,
+                invitedUser: { id: user.id },
+                status: 'pending'
+            },
+            relations: ['project', 'invitedUser']
+        });
+
+        if (!invitation) {
+            throw new NotFoundException('invitation-not-found');
+        }
+
+        if (respondDto.action === 'accept') {
+            // Verifica si el usuario ya es miembro del proyecto (por si acaso)
+            const isAlreadyMember = await this.projectMemberRepository.findOne({
+                where: {
+                    project: { id: invitation.project.id },
+                    user: { id: user.id }
+                }
+            });
+
+            if (isAlreadyMember) {
+                throw new BadRequestException('user-already-member');
+            }
+
+            // Crea el miembro del proyecto
+            const newMember = this.projectMemberRepository.create({
+                project: invitation.project,
+                user: invitation.invitedUser,
+                role: invitation.role
+            });
+
+            await this.projectMemberRepository.save(newMember);
+
+            // Actualiza el estado de la invitación
+            invitation.status = 'accepted';
+            await this.projectInvitationRepository.save(invitation);
+
+            return {
+                message: 'invitation-accepted-successfully',
+                projectId: invitation.project.id
+            };
+        } else {
+            // Rechaza la invitación
+            invitation.status = 'rejected';
+            await this.projectInvitationRepository.save(invitation);
+
+            return {
+                message: 'invitation-rejected-successfully'
+            };
+        }
+    }
+
+    // Section management methods
+    async createSection(user: User, projectId: string, sectionDto: CreateSectionDto) {
+        return this.sectionsService.create(user, projectId, sectionDto);
+    }
+
+    async getProjectSections(user: User, projectId: string) {
+        return this.sectionsService.getProjectSections(projectId);
+    }
+
+    async updateSection(user: User, projectId: string, sectionId: number, sectionDto: UpdateSectionDto) {
+        return this.sectionsService.update(user, projectId, sectionId, sectionDto);
+    }
+
+    async deleteSection(user: User, projectId: string, sectionId: number) {
+        return this.sectionsService.delete(user, projectId, sectionId);
+    }
+
+    async reorderSections(user: User, projectId: string, reorderDto: ReorderSectionsDto) {
+        return this.sectionsService.reorderSections(user, projectId, reorderDto);
     }
 }

@@ -1,9 +1,11 @@
-import { BadRequestException, Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, UseGuards, UsePipes } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Param, ParseIntPipe, ParseUUIDPipe, Post, Put, UseGuards, UsePipes } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { User } from 'src/users/user.entity';
 import { GetUser } from 'src/common/decorators/get-user.decorator';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { InviteMemberDto } from './dto/invite-member.dto';
+import { RespondInvitationDto } from './dto/respond-invitation.dto';
+import { CreateSectionDto, UpdateSectionDto, ReorderSectionsDto } from 'src/sections/dto/create-section.dto';
 import { ValidateBodyPipe } from 'src/common/pipes/validate-body.pipe';
 import { ProjectsService } from './projects.service';
 import { PermissionsGuard } from 'src/common/guards/permissions.guard';
@@ -78,6 +80,10 @@ export class ProjectsController {
     @Post(':projectId/sections')
     @UseGuards(AuthGuard("jwt"), PermissionsGuard)
     @RequirePermission(Permission.MANAGE_SECTIONS)
+    @UsePipes(new ValidateBodyPipe({
+        requiredFields: ["name"],
+        dto: CreateSectionDto
+    }))
     async createSection(
         @GetUser() user : User,
         @Param('projectId', new ParseUUIDPipe({ 
@@ -85,9 +91,83 @@ export class ProjectsController {
             errorHttpStatusCode: 400,
             exceptionFactory: () => new BadRequestException('invalid-project-id')
         })) projectId : string,
-        // @Body() sectionDto : CreateSectionDto
+        @Body() sectionDto : CreateSectionDto
     ) {
-        // return this.projectService.createSection(user, projectId, sectionDto);
+        return this.projectService.createSection(user, projectId, sectionDto);
+    }
+
+    // Obtener secciones del proyecto
+    @Get(':projectId/sections')
+    @UseGuards(AuthGuard("jwt"), PermissionsGuard)
+    @RequirePermission(Permission.VIEW_PROJECT)
+    async getProjectSections(
+        @GetUser() user : User,
+        @Param('projectId', new ParseUUIDPipe({ 
+            version: '4', 
+            errorHttpStatusCode: 400,
+            exceptionFactory: () => new BadRequestException('invalid-project-id')
+        })) projectId : string,
+    ) {
+        return this.projectService.getProjectSections(user, projectId);
+    }
+
+    // Reordenar secciones (drag and drop) - MUST come before parameterized route
+    @Put(':projectId/sections/reorder')
+    @UseGuards(AuthGuard("jwt"), PermissionsGuard)
+    @RequirePermission(Permission.MANAGE_SECTIONS)
+    @UsePipes(new ValidateBodyPipe({
+        requiredFields: ["sectionIds"],
+        dto: ReorderSectionsDto
+    }))
+    async reorderSections(
+        @GetUser() user : User,
+        @Param('projectId', new ParseUUIDPipe({ 
+            version: '4', 
+            errorHttpStatusCode: 400,
+            exceptionFactory: () => new BadRequestException('invalid-project-id')
+        })) projectId : string,
+        @Body() reorderDto : ReorderSectionsDto
+    ) {
+        return this.projectService.reorderSections(user, projectId, reorderDto);
+    }
+
+    // Actualizar sección
+    @Put(':projectId/sections/:sectionId')
+    @UseGuards(AuthGuard("jwt"), PermissionsGuard)
+    @RequirePermission(Permission.MANAGE_SECTIONS)
+    async updateSection(
+        @GetUser() user : User,
+        @Param('projectId', new ParseUUIDPipe({ 
+            version: '4', 
+            errorHttpStatusCode: 400,
+            exceptionFactory: () => new BadRequestException('invalid-project-id')
+        })) projectId : string,
+        @Param('sectionId', new ParseIntPipe({
+            errorHttpStatusCode: 400,
+            exceptionFactory: () => new BadRequestException('invalid-section-id')
+        })) sectionId : number,
+        @Body() sectionDto : UpdateSectionDto
+    ) {
+        return this.projectService.updateSection(user, projectId, sectionId, sectionDto);
+    }
+
+    // Eliminar sección
+    @Delete(':projectId/sections/:sectionId')
+    @UseGuards(AuthGuard("jwt"), PermissionsGuard)
+    @RequirePermission(Permission.MANAGE_SECTIONS)
+    async deleteSection(
+        @GetUser() user : User,
+        @Param('projectId', new ParseUUIDPipe({ 
+            version: '4', 
+            errorHttpStatusCode: 400,
+            exceptionFactory: () => new BadRequestException('invalid-project-id')
+        })) projectId : string,
+        @Param('sectionId', new ParseIntPipe({
+            errorHttpStatusCode: 400,
+            exceptionFactory: () => new BadRequestException('invalid-section-id')
+        })) sectionId : number,
+    ) {
+        return this.projectService.deleteSection(user, projectId, sectionId);
     }
     
     // Eliminar proyecto
@@ -103,5 +183,33 @@ export class ProjectsController {
         })) projectId : string,
     ) {
         return this.projectService.deleteProject(user, projectId);
+    }
+
+    // Obtener invitaciones del usuario
+    @Get('invitations/pending')
+    @UseGuards(AuthGuard("jwt"))
+    async getUserInvitations(
+        @GetUser() user: User
+    ) {
+        return this.projectService.getUserInvitations(user);
+    }
+
+    // Responder a una invitación (aceptar o rechazar)
+    @Put('invitations/:invitationId/respond')
+    @UseGuards(AuthGuard("jwt"))
+    @UsePipes(new ValidateBodyPipe({
+        requiredFields: ["action"],
+        dto: RespondInvitationDto
+    }))
+    async respondToInvitation(
+        @GetUser() user: User,
+        @Param('invitationId', new ParseUUIDPipe({ 
+            version: '4', 
+            errorHttpStatusCode: 400,
+            exceptionFactory: () => new BadRequestException('invalid-invitation-id')
+        })) invitationId: string,
+        @Body() respondDto: RespondInvitationDto
+    ) {
+        return this.projectService.respondToInvitation(user, invitationId, respondDto);
     }
 }
