@@ -8,6 +8,9 @@ import { ProjectsModule } from './projects/projects.module';
 import { APP_PIPE } from '@nestjs/core';
 import { ConditionalValidationPipe } from './common/pipes/conditional-validation.pipe';
 import { SectionsModule } from './sections/sections.module';
+import { TasksModule } from './tasks/tasks.module';
+import { ChatModule } from './chat/chat.module';
+import { CallsModule } from './calls/calls.module';
 
 // Debug environment variables
 console.log('Database Configuration:', {
@@ -34,6 +37,9 @@ console.log('Database Configuration:', {
     }),
     ProjectsModule,
     SectionsModule,
+    TasksModule,
+    ChatModule,
+    CallsModule,
   ],
   controllers: [AppController],
   providers: [
