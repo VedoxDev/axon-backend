@@ -230,35 +230,29 @@ export class UsersService {
 
         // Recent activity timeline
         const recentActivity = [
-            ...recentTasks
-                .filter(task => task.createdBy) // Filter out tasks with null createdBy
-                .map(task => ({
-                    type: 'task',
-                    action: task.createdBy.id === userId ? 'created' : 'assigned',
-                    title: task.title,
-                    project: task.project?.name,
-                    timestamp: task.updatedAt,
-                    status: task.status
-                })),
-            ...recentMessages
-                .filter(msg => msg.content) // Filter out messages with null content
-                .map(msg => ({
-                    type: 'message',
-                    action: 'sent',
-                    title: msg.content.substring(0, 50) + (msg.content.length > 50 ? '...' : ''),
-                    project: msg.project?.name,
-                    recipient: msg.recipient ? `${msg.recipient.nombre} ${msg.recipient.apellidos}` : null,
-                    timestamp: msg.createdAt
-                })),
-            ...recentCalls
-                .filter(call => call.call && call.call.initiator) // Filter out null calls
-                .map(call => ({
-                    type: 'call',
-                    action: call.call.initiator.id === userId ? 'initiated' : 'joined',
-                    title: call.call.title || `${call.call.type} call`,
-                    project: call.call.project?.name,
-                    timestamp: call.createdAt
-                }))
+            ...recentTasks.map(task => ({
+                type: 'task',
+                action: task.createdBy.id === userId ? 'created' : 'assigned',
+                title: task.title,
+                project: task.project?.name,
+                timestamp: task.updatedAt,
+                status: task.status
+            })),
+            ...recentMessages.map(msg => ({
+                type: 'message',
+                action: 'sent',
+                title: msg.content.substring(0, 50) + (msg.content.length > 50 ? '...' : ''),
+                project: msg.project?.name,
+                recipient: msg.recipient ? `${msg.recipient.nombre} ${msg.recipient.apellidos}` : null,
+                timestamp: msg.createdAt
+            })),
+            ...recentCalls.map(call => ({
+                type: 'call',
+                action: call.call.initiator.id === userId ? 'initiated' : 'joined',
+                title: call.call.title || `${call.call.type} call`,
+                project: call.call.project?.name,
+                timestamp: call.createdAt
+            }))
         ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 20);
 
         // Most active projects
@@ -339,9 +333,5 @@ export class UsersService {
             status: user.status,
             fullName: `${user.nombre} ${user.apellidos}`
         }));
-    }
-
-    async updatePassword(userId: string, hashedPassword: string): Promise<void> {
-        await this.userRepository.update(userId, { password: hashedPassword });
     }
 }

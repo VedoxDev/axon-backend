@@ -1,7 +1,8 @@
-import { Controller, Post, Body, Get, UseGuards, UsePipes } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, UsePipes, Put } from '@nestjs/common';
 import { UsersService } from 'src/users/users.service';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { LoginDto } from './dto/login.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { AuthService } from './auth.service';
 import { GetUser } from '../common/decorators/get-user.decorator';
 import { AuthGuard } from '@nestjs/passport';
@@ -46,4 +47,20 @@ export class AuthController {
     async getMe(@GetUser() user: User) {
         return this.userService.getProfile(user.id);
     } 
+
+    @Get('me/profile')
+    @UseGuards(AuthGuard('jwt'))
+    async getMyProfile(@GetUser() user: User) {
+        return this.userService.getUserProfile(user.id);
+    }
+
+    @Put('change-password')
+    @UseGuards(AuthGuard('jwt'))
+    @UsePipes(new ValidateBodyPipe({
+        requiredFields: ['currentPassword', 'newPassword', 'confirmPassword'],
+        dto: ChangePasswordDto
+    }))
+    async changePassword(@GetUser() user: User, @Body() changePasswordDto: ChangePasswordDto) {
+        return this.authService.changePassword(user.id, changePasswordDto);
+    }
 }

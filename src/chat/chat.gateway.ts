@@ -30,7 +30,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private chatService: ChatService,
     private jwtService: JwtService,
-  ) {}
+  ) {
+    // Inject this gateway into the chat service for real-time broadcasting
+    this.chatService.setChatGateway(this);
+  }
 
   // ========== CONNECTION MANAGEMENT ==========
 

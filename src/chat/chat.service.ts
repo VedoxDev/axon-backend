@@ -345,53 +345,118 @@ export class ChatService {
     recipientId: string,
     callId: string,
     callType: 'direct' | 'project',
-    title?: string
+    title?: string,
+    audioOnly: boolean = false
   ): Promise<Message> {
     const sender = await this.userRepository.findOne({ where: { id: senderId } });
     if (!sender) {
       throw new NotFoundException('sender-not-found');
     }
 
-    const callInviteContent = {
-      type: 'call_invitation',
-      callId,
-      callType,
-      title: title || `${callType === 'direct' ? 'Video call' : 'Project call'}`,
-      initiatorName: `${sender.nombre} ${sender.apellidos}`
-    };
+    const initiatorName = `${sender.nombre} ${sender.apellidos}`;
+    
+    // Generate different messages based on audioOnly parameter
+    let content: string;
+    if (audioOnly) {
+      content = `📞 ${initiatorName} ha iniciado una llamada`;
+    } else {
+      content = `📞 ${initiatorName} ha iniciado una videollamada`;
+    }
 
     // Create special call invitation message
-    return this.createMessage(sender, {
-      content: `📞 ${callInviteContent.initiatorName} invited you to a ${callInviteContent.title}`,
+    const message = await this.createMessage(sender, {
+      content,
       recipientId,
       callId, // Include the call ID for frontend extraction
     });
+
+    // 🚀 NEW: Broadcast call invitation via WebSocket in real-time!
+    await this.broadcastCallInvitation(message, 'direct');
+
+    return message;
   }
 
   async sendProjectCallInvitation(
     senderId: string,
     projectId: string,
     callId: string,
-    title?: string
+    title?: string,
+    audioOnly: boolean = false
   ): Promise<Message> {
     const sender = await this.userRepository.findOne({ where: { id: senderId } });
     if (!sender) {
       throw new NotFoundException('sender-not-found');
     }
 
-    const callInviteContent = {
-      type: 'call_invitation',
-      callId,
-      callType: 'project',
-      title: title || 'Project video call',
-      initiatorName: `${sender.nombre} ${sender.apellidos}`
-    };
+    const initiatorName = `${sender.nombre} ${sender.apellidos}`;
+    
+    // Generate different messages based on audioOnly parameter
+    let content: string;
+    if (audioOnly) {
+      content = `📞 ${initiatorName} ha iniciado una llamada de audio`;
+    } else {
+      content = `📞 ${initiatorName} ha iniciado una videollamada`;
+    }
 
     // Create project call invitation message
-    return this.createMessage(sender, {
-      content: `📞 ${callInviteContent.initiatorName} started a ${callInviteContent.title}. Join now!`,
+    const message = await this.createMessage(sender, {
+      content,
       projectId,
       callId, // Include the call ID for frontend extraction
     });
+
+    // 🚀 NEW: Broadcast call invitation via WebSocket in real-time!
+    await this.broadcastCallInvitation(message, 'project');
+
+    return message;
+  }
+
+  // ========== WEBSOCKET INTEGRATION ==========
+
+  private chatGateway: any; // Will be injected
+
+  // Method to set the gateway reference (called from ChatGateway)
+  setChatGateway(gateway: any) {
+    this.chatGateway = gateway;
+  }
+
+  // Broadcast call invitation in real-time via WebSocket
+  private async broadcastCallInvitation(message: Message, type: 'direct' | 'project'): Promise<void> {
+    if (!this.chatGateway) {
+      console.log('[ChatService] No ChatGateway available for broadcasting');
+      return;
+    }
+
+    // Load full message with relations for broadcasting
+    const fullMessage = await this.getMessageWithRelations(message.id);
+    if (!fullMessage) {
+      console.log('[ChatService] Failed to load full message for broadcasting');
+      return;
+    }
+
+    // Prepare message data for broadcast (same format as regular messages)
+    const messageData = {
+      id: fullMessage.id,
+      content: fullMessage.content,
+      senderId: fullMessage.sender.id,
+      senderName: `${fullMessage.sender.nombre} ${fullMessage.sender.apellidos}`,
+      createdAt: fullMessage.createdAt,
+      isRead: fullMessage.isRead,
+      isEdited: fullMessage.isEdited,
+      type: type,
+      recipientId: fullMessage.recipient?.id,
+      projectId: fullMessage.project?.id,
+      callId: fullMessage.callId, // Include call ID for frontend
+    };
+
+    if (type === 'direct' && fullMessage.recipient) {
+      // Direct call invitation - send to recipient in real-time
+      this.chatGateway.sendToUser(fullMessage.recipient.id, 'newMessage', messageData);
+      console.log(`[ChatService] Broadcasted direct call invitation to user ${fullMessage.recipient.id}`);
+    } else if (type === 'project' && fullMessage.project) {
+      // Project call invitation - broadcast to all project members in real-time
+      this.chatGateway.sendToProject(fullMessage.project.id, 'newMessage', messageData);
+      console.log(`[ChatService] Broadcasted project call invitation to project ${fullMessage.project.id}`);
+    }
   }
 } 

@@ -146,7 +146,47 @@ Authorization: Bearer <jwt-token>
 npm install @livekit/react-native @livekit/react-native-webrtc
 ```
 
-### 2. Basic Call Component
+### 2. Participant Display Names 👥
+**NEW: Proper User Names in Video Calls!**
+
+The backend now includes user metadata in LiveKit tokens, allowing proper display names:
+
+```javascript
+// Helper function to get participant display name
+const getParticipantDisplayName = (participant) => {
+  // Check if participant has metadata with displayName
+  if (participant.metadata) {
+    try {
+      const metadata = JSON.parse(participant.metadata);
+      if (metadata.displayName) {
+        return metadata.displayName; // Returns "John Smith"
+      }
+    } catch (error) {
+      console.log('Failed to parse participant metadata:', error);
+    }
+  }
+  
+  // Fallback to participant name if available
+  if (participant.name && participant.name !== participant.identity) {
+    return participant.name; // Returns "John Smith"
+  }
+  
+  // Last resort: Use identity (UUID) with "User" prefix
+  return `User ${participant.identity.substring(0, 8)}`;
+};
+
+// Usage in your component
+participants.map(participant => {
+  const displayName = getParticipantDisplayName(participant);
+  return (
+    <Text key={participant.identity}>
+      {displayName} {/* Shows "John Smith" instead of UUID */}
+    </Text>
+  );
+});
+```
+
+### 3. Basic Call Component
 ```javascript
 import React, { useEffect, useState } from 'react';
 import { View, Text, Button, Alert } from 'react-native';
@@ -156,6 +196,26 @@ const VideoCallScreen = ({ route, navigation }) => {
   const { callId } = route.params;
   const [room, setRoom] = useState(null);
   const [participants, setParticipants] = useState([]);
+
+  // Helper function to get display name (IMPROVED!)
+  const getParticipantDisplayName = (participant) => {
+    if (participant.metadata) {
+      try {
+        const metadata = JSON.parse(participant.metadata);
+        if (metadata.displayName) {
+          return metadata.displayName; // "John Smith"
+        }
+      } catch (error) {
+        console.log('Failed to parse participant metadata:', error);
+      }
+    }
+    
+    if (participant.name && participant.name !== participant.identity) {
+      return participant.name;
+    }
+    
+    return `User ${participant.identity.substring(0, 8)}`;
+  };
 
   useEffect(() => {
     joinCall();
@@ -192,14 +252,16 @@ const VideoCallScreen = ({ route, navigation }) => {
 
       setRoom(newRoom);
 
-      // Listen for participants
+      // Listen for participants (IMPROVED LOGGING!)
       newRoom.on(RoomEvent.ParticipantConnected, (participant) => {
-        console.log('Participant joined:', participant.identity);
+        const displayName = getParticipantDisplayName(participant);
+        console.log(`${displayName} joined the call`); // "John Smith joined the call"
         setParticipants(prev => [...prev, participant]);
       });
 
       newRoom.on(RoomEvent.ParticipantDisconnected, (participant) => {
-        console.log('Participant left:', participant.identity);
+        const displayName = getParticipantDisplayName(participant);
+        console.log(`${displayName} left the call`); // "John Smith left the call"
         setParticipants(prev => prev.filter(p => p.identity !== participant.identity));
       });
 
@@ -271,6 +333,18 @@ const VideoCallScreen = ({ route, navigation }) => {
         In call with {participants.length} participants
       </Text>
       
+      {/* Display participant names (IMPROVED!) */}
+      <View style={{ marginTop: 20 }}>
+        {participants.map(participant => {
+          const displayName = getParticipantDisplayName(participant);
+          return (
+            <Text key={participant.identity} style={{ color: 'white', textAlign: 'center' }}>
+              📹 {displayName} {/* Shows "📹 John Smith" instead of UUID */}
+            </Text>
+          );
+        })}
+      </View>
+      
       <View style={{ 
         position: 'absolute', 
         bottom: 50, 
@@ -290,7 +364,7 @@ const VideoCallScreen = ({ route, navigation }) => {
 export default VideoCallScreen;
 ```
 
-### 3. Start Call Function
+### 4. Start Call Function
 ```javascript
 const startVideoCall = async (recipientId, type = 'direct') => {
   try {
@@ -322,47 +396,123 @@ const startVideoCall = async (recipientId, type = 'direct') => {
 
 ---
 
+## 👤 Participant Metadata Structure
+
+**NEW: Rich User Data in LiveKit Tokens!**
+
+The backend now includes comprehensive user information in LiveKit token metadata:
+
+```json
+{
+  "displayName": "John Smith",
+  "email": "john.smith@company.com", 
+  "avatar": "",
+  "userId": "357b292d-ddbf-4061-89ce-2243f6d9db57"
+}
+```
+
+### Accessing Metadata in Frontend
+```javascript
+// Parse participant metadata
+const parseParticipantMetadata = (participant) => {
+  if (!participant.metadata) return null;
+  
+  try {
+    return JSON.parse(participant.metadata);
+  } catch (error) {
+    console.error('Failed to parse metadata:', error);
+    return null;
+  }
+};
+
+// Usage example
+const metadata = parseParticipantMetadata(participant);
+if (metadata) {
+  console.log('Display Name:', metadata.displayName); // "John Smith"
+  console.log('Email:', metadata.email);              // "john.smith@company.com"  
+  console.log('User ID:', metadata.userId);           // "357b292d-..."
+}
+```
+
+### Benefits
+- ✅ **Real Names**: Show "John Smith" instead of "User 357b292d"
+- ✅ **Email Access**: Optional user email for contact info
+- ✅ **UUID Tracking**: Backend can still track users by UUID
+- ✅ **Future Extensible**: Easy to add avatar URLs, roles, etc.
+- ✅ **Fallback Safe**: Works even if metadata parsing fails
+
+---
+
 ## 🔔 Chat Integration
 
-### Call Invitations
+### Call Invitations ✨
+**NEW: Automatic messages distinguish between audio and video calls!**
+
 When a call is started, automatic chat messages are sent:
 
-**Direct Call:**
+**Direct Calls:**
 ```
-📞 Victor Fonseca invited you to a Video call
-```
-
-**Project Call:**
-```
-📞 Victor Fonseca started a Sprint planning meeting. Join now!
+📞 Victor Fonseca ha iniciado una llamada       (audio-only)
+📞 Victor Fonseca ha iniciado una videollamada  (video call)
 ```
 
-### Listen for Call Invitations
+**Project Calls:**
+```
+📞 Victor Fonseca ha iniciado una llamada de audio  (audio-only)
+📞 Victor Fonseca ha iniciado una videollamada      (video call)
+```
+
+The backend automatically checks the `audioOnly` parameter and generates appropriate messages in Spanish.
+
+### Listen for Call Invitations ✨
+**NEW: Real-time call invitations via WebSocket!**
+
 ```javascript
 // In your chat WebSocket handler
 socket.on('newMessage', (message) => {
-  if (message.content.includes('📞')) {
-    // This is a call invitation
+  // Check if this is a call invitation message
+  if (message.content.includes('📞') && message.callId) {
+    console.log('📞 Received call invitation:', message);
     showCallInvitationDialog(message);
+  } else {
+    // Regular chat message
+    displayMessage(message);
   }
 });
 
 const showCallInvitationDialog = (message) => {
   Alert.alert(
     'Call Invitation',
-    message.content,
+    message.content, // "📞 Victor Fonseca ha iniciado una videollamada"
     [
       { text: 'Decline', style: 'cancel' },
       { 
         text: 'Join', 
         onPress: () => {
-          // Extract call ID from message and join
-          navigation.navigate('VideoCall', { callId: extractCallId(message) });
+          // Use the callId from the message
+          navigation.navigate('VideoCall', { callId: message.callId });
         }
       }
     ]
   );
 };
+
+// Message structure for call invitations:
+/*
+{
+  id: 'msg-uuid',
+  content: '📞 Victor Fonseca ha iniciado una videollamada',
+  senderId: 'initiator-uuid',
+  senderName: 'Victor Fonseca',
+  createdAt: '2024-01-10T10:00:00.000Z',
+  type: 'direct', // or 'project'
+  recipientId: 'recipient-uuid', // for direct calls
+  projectId: 'project-uuid', // for project calls
+  callId: 'call-uuid', // ✨ NEW: For joining the call
+  isRead: false,
+  isEdited: false
+}
+*/
 ```
 
 ---
@@ -465,7 +615,9 @@ POST /calls/start
 }
 ```
 
-### Audio-Only Calls
+### Audio-Only Calls ✨
+**NEW: Different invitation messages for audio vs video!**
+
 ```http
 POST /calls/start
 {
@@ -474,6 +626,42 @@ POST /calls/start
   "audioOnly": true
 }
 ```
+
+**Chat Message Sent:** `📞 Victor Fonseca ha iniciado una llamada`
+
+```http
+POST /calls/start
+{
+  "type": "project",
+  "projectId": "project-uuid", 
+  "audioOnly": true
+}
+```
+
+**Chat Message Sent:** `📞 Victor Fonseca ha iniciado una llamada de audio`
+
+### Video Calls (Default)
+```http
+POST /calls/start
+{
+  "type": "direct", 
+  "recipientId": "user-uuid",
+  "audioOnly": false
+}
+```
+
+**Chat Message Sent:** `📞 Victor Fonseca ha iniciado una videollamada`
+
+```http
+POST /calls/start
+{
+  "type": "project",
+  "projectId": "project-uuid", 
+  "audioOnly": false
+}
+```
+
+**Chat Message Sent:** `📞 Victor Fonseca ha iniciado una videollamada`
 
 ### Limited Participants
 ```http
@@ -504,6 +692,7 @@ LiveKit automatically sends webhooks to `/calls/webhook/livekit` for:
 3. Check chat for invitation message
 4. Join call as User B
 5. Verify both users in LiveKit room
+6. **NEW**: Verify proper names show in UI (not UUIDs)
 
 ### Test Project Call  
 1. Create project with multiple members
@@ -511,6 +700,122 @@ LiveKit automatically sends webhooks to `/calls/webhook/livekit` for:
 3. Check all members receive chat notification
 4. Multiple users join call
 5. Verify group video conference
+6. **NEW**: Verify all participant names display correctly
+
+### Test Participant Names
+```javascript
+// Debug participant metadata
+participants.forEach(participant => {
+  console.log('=== PARTICIPANT DEBUG ===');
+  console.log('Identity:', participant.identity);        // UUID
+  console.log('Name:', participant.name);               // Display name
+  console.log('Metadata:', participant.metadata);       // JSON string
+  
+  if (participant.metadata) {
+    const metadata = JSON.parse(participant.metadata);
+    console.log('Parsed metadata:', metadata);
+    console.log('Display name:', metadata.displayName); // "John Smith"
+    console.log('Email:', metadata.email);              // User email
+    console.log('User ID:', metadata.userId);           // UUID for tracking
+  }
+});
+```
+
+### Troubleshooting "undefined undefined"
+
+If you see "undefined undefined" in participant names:
+
+1. **Check Backend Logs** - Look for JWT strategy errors
+```bash
+# Check server logs for:
+[CallsService] Initiator user data: id=xxx, nombre="undefined", apellidos="undefined"
+```
+
+2. **JWT Token Issue** - The user data might not be loading properly
+```javascript
+// Frontend: Check your JWT token payload
+const token = await AsyncStorage.getItem('access_token');
+const payload = JSON.parse(atob(token.split('.')[1]));
+console.log('JWT payload:', payload); // Should have id and email
+```
+
+3. **Re-login** - If JWT is corrupted, have user login again
+```javascript
+// Clear token and re-authenticate
+await AsyncStorage.removeItem('access_token');
+// Navigate to login screen
+```
+
+4. **Fixed in Latest Version** ✅
+   - JWT strategy now loads full user data from database
+   - Includes proper fallbacks for missing fields
+   - Debug logging added for troubleshooting
+
+### Troubleshooting Call Disconnections
+
+If participants get kicked when someone leaves:
+
+1. **Check Backend Logs** - Look for participant tracking
+```bash
+# Check server logs for:
+[CallsService] Active participants remaining after user123 left: 2
+[CallsService]   - Participant user456 (connected: true, leftAt: null)
+[CallsService] Call continues with 2 active participants
+```
+
+2. **Proper Leave vs Disconnect**
+   - Use `PUT /calls/leave/{callId}` to properly leave calls
+   - Don't just close the app/navigate away
+   - Backend tracks participant state automatically
+
+3. **Fixed in Latest Version** ✅
+   - Participants now properly marked as connected when joining
+   - Leave call only ends room when last participant leaves
+   - Enhanced logging for debugging participant state
+
+### Troubleshooting Call Invitations Not Appearing
+
+If call invitation messages don't appear in real-time:
+
+1. **Check WebSocket Connection**
+```javascript
+// Ensure WebSocket is connected
+socket.on('connect', () => {
+  console.log('✅ Connected to chat WebSocket');
+});
+
+socket.on('disconnect', () => {
+  console.log('❌ Disconnected from chat WebSocket');
+});
+```
+
+2. **Ensure Project Room Joined** (for project calls)
+```javascript
+// Must join project room to receive project call invitations
+socket.emit('joinProject', { projectId: 'your-project-id' });
+
+socket.on('joinedProject', (data) => {
+  console.log('✅ Joined project room:', data.projectId);
+});
+```
+
+3. **Check Message Event Listener**
+```javascript
+// Listen for all new messages (including call invitations)
+socket.on('newMessage', (message) => {
+  console.log('📨 New message received:', message);
+  
+  if (message.callId) {
+    console.log('📞 This is a call invitation!');
+  }
+});
+```
+
+4. **Fixed in Latest Version** ✅
+   - Call invitations now broadcast via WebSocket in real-time
+   - No need to refresh chat to see call invitations
+   - Same message format as regular chat messages
+   - Includes `callId` field for easy call joining
 
 ---
 

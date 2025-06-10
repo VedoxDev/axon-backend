@@ -22,12 +22,6 @@ export enum CallStatus {
   CANCELLED = 'cancelled'   // Call cancelled before anyone joined
 }
 
-export enum MeetingType {
-  INSTANT = 'instant',              // Regular instant call
-  PROJECT_MEETING = 'project_meeting',  // Scheduled project meeting
-  PERSONAL_MEETING = 'personal_meeting' // Scheduled personal meeting
-}
-
 @Entity('calls')
 export class Call {
   @PrimaryGeneratedColumn('uuid')
@@ -77,26 +71,6 @@ export class Call {
 
   @Column({ default: false })
   recordCall: boolean; // Should record the call
-
-  // Meeting-specific fields
-  @Column({ nullable: true })
-  scheduledAt?: Date; // When meeting is scheduled
-
-  @Column({ default: false })
-  isScheduledMeeting: boolean; // Distinguish from instant calls
-
-  @Column({ nullable: true })
-  description?: string; // Meeting description/agenda
-
-  @Column({ default: 60 })
-  duration: number; // Duration in minutes
-
-  @Column({
-    type: 'enum',
-    enum: MeetingType,
-    default: MeetingType.INSTANT
-  })
-  meetingType: MeetingType; // Type of meeting
 
   @OneToMany(() => CallParticipant, participant => participant.call, { cascade: true })
   participants: CallParticipant[];

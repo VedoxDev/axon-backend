@@ -1,5 +1,5 @@
-import { IsNotEmpty, IsOptional, IsString, IsUUID, IsBoolean, IsEnum, IsNumber, Min, Max } from 'class-validator';
-import { CallType } from '../entities/call.entity';
+import { IsNotEmpty, IsOptional, IsString, IsUUID, IsBoolean, IsEnum, IsNumber, Min, Max, IsDateString, IsArray, IsEmail } from 'class-validator';
+import { CallType, MeetingType } from '../entities/call.entity';
 
 export class StartCallDto {
   @IsEnum(CallType)
@@ -84,4 +84,70 @@ export class LiveKitTokenDto {
   @IsOptional()
   @IsBoolean()
   canSubscribe?: boolean;
+}
+
+// Meeting DTOs
+export class ScheduleProjectMeetingDto {
+  @IsNotEmpty()
+  @IsString()
+  title: string;
+
+  @IsNotEmpty()
+  @IsDateString()
+  scheduledAt: string; // ISO date string
+
+  @IsNotEmpty()
+  @IsUUID('4', { message: 'invalid-project-id' })
+  projectId: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(15)
+  @Max(480) // Max 8 hours
+  duration?: number; // Duration in minutes
+
+  @IsOptional()
+  @IsBoolean()
+  audioOnly?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  recordCall?: boolean;
+}
+
+export class SchedulePersonalMeetingDto {
+  @IsNotEmpty()
+  @IsString()
+  title: string;
+
+  @IsNotEmpty()
+  @IsDateString()
+  scheduledAt: string; // ISO date string
+
+  @IsNotEmpty()
+  @IsArray()
+  @IsEmail({}, { each: true })
+  participantEmails: string[]; // Array of email addresses
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(15)
+  @Max(480) // Max 8 hours
+  duration?: number; // Duration in minutes
+
+  @IsOptional()
+  @IsBoolean()
+  audioOnly?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  recordCall?: boolean;
 } 

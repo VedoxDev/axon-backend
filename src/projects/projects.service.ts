@@ -8,6 +8,7 @@ import { User } from 'src/users/user.entity';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { InviteMemberDto } from './dto/invite-member.dto';
 import { RespondInvitationDto } from './dto/respond-invitation.dto';
+import { ChangeMemberRoleDto } from './dto/change-member-role.dto';
 import { UsersService } from 'src/users/users.service';
 import { SectionsService } from 'src/sections/sections.service';
 import { CreateSectionDto, UpdateSectionDto, ReorderSectionsDto } from 'src/sections/dto/create-section.dto';
@@ -295,5 +296,56 @@ export class ProjectsService {
 
     async reorderSections(user: User, projectId: string, reorderDto: ReorderSectionsDto) {
         return this.sectionsService.reorderSections(user, projectId, reorderDto);
+    }
+
+    async changeMemberRole(ownerUser: User, projectId: string, memberId: string, newRole: 'member' | 'admin') {
+        // Verify project exists and get it with members
+        const project = await this.projectRepository.findOne({
+            where: { id: projectId },
+            relations: ['members', 'members.user', 'owner']
+        });
+
+        if (!project) {
+            throw new NotFoundException('project-not-found');
+        }
+
+        // Verify the requesting user is the project owner
+        if (project.owner.id !== ownerUser.id) {
+            throw new ForbiddenException('only-owner-can-change-roles');
+        }
+
+        // Find the member to change
+        const memberToChange = await this.projectMemberRepository.findOne({
+            where: { 
+                project: { id: projectId },
+                user: { id: memberId }
+            },
+            relations: ['user', 'project']
+        });
+
+        if (!memberToChange) {
+            throw new NotFoundException('member-not-found');
+        }
+
+        // Cannot change owner role
+        if (memberToChange.role === 'owner') {
+            throw new BadRequestException('cannot-change-owner-role');
+        }
+
+        // Cannot change your own role (owner trying to change themselves)
+        if (memberToChange.user.id === ownerUser.id) {
+            throw new BadRequestException('cannot-change-own-role');
+        }
+
+        // Update the role
+        memberToChange.role = newRole;
+        await this.projectMemberRepository.save(memberToChange);
+
+        return {
+            message: 'member-role-changed-successfully',
+            memberId: memberToChange.user.id,
+            newRole: newRole,
+            memberName: `${memberToChange.user.nombre} ${memberToChange.user.apellidos}`
+        };
     }
 }

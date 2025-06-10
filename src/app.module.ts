@@ -11,6 +11,7 @@ import { SectionsModule } from './sections/sections.module';
 import { TasksModule } from './tasks/tasks.module';
 import { ChatModule } from './chat/chat.module';
 import { CallsModule } from './calls/calls.module';
+import { AnnouncementsModule } from './announcements/announcements.module';
 
 // Debug environment variables
 console.log('Database Configuration:', {
@@ -40,6 +41,7 @@ console.log('Database Configuration:', {
     TasksModule,
     ChatModule,
     CallsModule,
+    AnnouncementsModule,
   ],
   controllers: [AppController],
   providers: [

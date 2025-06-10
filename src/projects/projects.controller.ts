@@ -5,6 +5,7 @@ import { GetUser } from 'src/common/decorators/get-user.decorator';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { InviteMemberDto } from './dto/invite-member.dto';
 import { RespondInvitationDto } from './dto/respond-invitation.dto';
+import { ChangeMemberRoleDto } from './dto/change-member-role.dto';
 import { CreateSectionDto, UpdateSectionDto, ReorderSectionsDto } from 'src/sections/dto/create-section.dto';
 import { ValidateBodyPipe } from 'src/common/pipes/validate-body.pipe';
 import { ProjectsService } from './projects.service';
@@ -211,5 +212,29 @@ export class ProjectsController {
         @Body() respondDto: RespondInvitationDto
     ) {
         return this.projectService.respondToInvitation(user, invitationId, respondDto);
+    }
+
+    // Cambiar rol de miembro (solo owner)
+    @Put(':projectId/members/:memberId/role')
+    @UseGuards(AuthGuard("jwt"))
+    @UsePipes(new ValidateBodyPipe({
+        requiredFields: ["role"],
+        dto: ChangeMemberRoleDto
+    }))
+    async changeMemberRole(
+        @GetUser() user: User,
+        @Param('projectId', new ParseUUIDPipe({ 
+            version: '4', 
+            errorHttpStatusCode: 400,
+            exceptionFactory: () => new BadRequestException('invalid-project-id')
+        })) projectId: string,
+        @Param('memberId', new ParseUUIDPipe({ 
+            version: '4', 
+            errorHttpStatusCode: 400,
+            exceptionFactory: () => new BadRequestException('invalid-member-id')
+        })) memberId: string,
+        @Body() changeRoleDto: ChangeMemberRoleDto
+    ) {
+        return this.projectService.changeMemberRole(user, projectId, memberId, changeRoleDto.role);
     }
 }

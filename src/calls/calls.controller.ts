@@ -16,7 +16,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { CallsService } from './calls.service';
-import { StartCallDto, JoinCallDto, UpdateCallParticipantDto } from './dto/call.dto';
+import { StartCallDto, JoinCallDto, UpdateCallParticipantDto, ScheduleProjectMeetingDto, SchedulePersonalMeetingDto } from './dto/call.dto';
 
 @Controller('calls')
 @UseGuards(AuthGuard('jwt'))
@@ -126,6 +126,61 @@ export class CallsController {
     // This endpoint allows regenerating tokens if needed
     const { call, token } = await this.callsService.joinCall(req.user, callId);
     return { token, roomName: call.roomName };
+  }
+
+  // ========== MEETINGS ==========
+
+  @Post('meetings/project')
+  async scheduleProjectMeeting(
+    @Request() req,
+    @Body() scheduleDto: ScheduleProjectMeetingDto
+  ) {
+    return this.callsService.scheduleProjectMeeting(req.user, scheduleDto);
+  }
+
+  @Post('meetings/personal')
+  async schedulePersonalMeeting(
+    @Request() req,
+    @Body() scheduleDto: SchedulePersonalMeetingDto
+  ) {
+    return this.callsService.schedulePersonalMeeting(req.user, scheduleDto);
+  }
+
+  @Get('meetings/my')
+  async getMyMeetings(@Request() req) {
+    return this.callsService.getUserMeetings(req.user);
+  }
+
+  @Get('meetings/project/:projectId')
+  async getProjectMeetings(
+    @Request() req,
+    @Param('projectId', ParseUUIDPipe) projectId: string
+  ) {
+    return this.callsService.getProjectMeetings(req.user, projectId);
+  }
+
+  @Get('meetings/project/:projectId/history')
+  async getProjectMeetingHistory(
+    @Request() req,
+    @Param('projectId', ParseUUIDPipe) projectId: string
+  ) {
+    return this.callsService.getProjectMeetingHistory(req.user, projectId);
+  }
+
+  @Get('meetings/:meetingId')
+  async getMeetingDetails(
+    @Request() req,
+    @Param('meetingId', ParseUUIDPipe) meetingId: string
+  ) {
+    return this.callsService.getMeetingDetails(req.user, meetingId);
+  }
+
+  @Delete('meetings/:meetingId')
+  async cancelMeeting(
+    @Request() req,
+    @Param('meetingId', ParseUUIDPipe) meetingId: string
+  ) {
+    return this.callsService.cancelMeeting(req.user, meetingId);
   }
 
   // ========== WEBHOOKS ==========

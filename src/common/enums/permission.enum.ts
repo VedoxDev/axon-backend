@@ -9,4 +9,7 @@ export enum Permission {
   CREATE_TASK = 'create_task',
   ASSIGN_TASK = 'assign_task',
   MANAGE_SECTIONS = 'manage_sections',
+
+  // Announcements
+  MANAGE_ANNOUNCEMENTS = 'manage_announcements',
 }

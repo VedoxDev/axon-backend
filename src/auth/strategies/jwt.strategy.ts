@@ -1,8 +1,16 @@
+import { Injectable } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
 import { Strategy, ExtractJwt } from "passport-jwt";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { User } from "../../users/user.entity";
 
+@Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-    constructor() {
+    constructor(
+        @InjectRepository(User)
+        private userRepository: Repository<User>
+    ) {
         super({
             jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
             ignoreExpiration: false,
@@ -11,9 +19,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     async validate(payload: any) {
-        return {
-            id: payload.id,
-            email: payload.email,
+        // Load full user data from database instead of just JWT payload
+        const user = await this.userRepository.findOne({ 
+            where: { id: payload.id } 
+        });
+        
+        if (!user) {
+            return null; // This will trigger 401 Unauthorized
         }
+
+        return user; // Return full user object with all fields
     }
 }
