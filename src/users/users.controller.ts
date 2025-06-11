@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards, Param, BadRequestException, ParseUUIDPipe } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { UsersService } from './users.service';
 
@@ -29,5 +29,18 @@ export class UsersController {
             total: users.length,
             query: query.trim()
         };
+    }
+
+    // Get user profile by ID
+    @Get(':userId/profile')
+    @UseGuards(AuthGuard("jwt"))
+    async getUserProfile(
+        @Param('userId', new ParseUUIDPipe({ 
+            version: '4', 
+            errorHttpStatusCode: 400,
+            exceptionFactory: () => new BadRequestException('invalid-user-id')
+        })) userId: string
+    ) {
+        return this.usersService.getUserProfile(userId);
     }
 } 
