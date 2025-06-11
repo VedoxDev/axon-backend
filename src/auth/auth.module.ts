@@ -14,7 +14,7 @@ import { EmailService } from 'src/common/services/email.service';
     TypeOrmModule.forFeature([User]), // Add User repository for JwtStrategy
     JwtModule.register({
       secret: process.env.JWT_SECRET, 
-      signOptions: { expiresIn: '1d'}
+      signOptions: { expiresIn: '14d'}
     })
   ],
   controllers: [AuthController],
