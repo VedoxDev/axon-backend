@@ -1,8 +1,10 @@
-import { Controller, Post, Body, Get, UseGuards, UsePipes, Put } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, UsePipes, Put, Param } from '@nestjs/common';
 import { UsersService } from 'src/users/users.service';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { RequestPasswordResetDto } from './dto/request-password-reset.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { AuthService } from './auth.service';
 import { GetUser } from '../common/decorators/get-user.decorator';
 import { AuthGuard } from '@nestjs/passport';
@@ -62,5 +64,28 @@ export class AuthController {
     }))
     async changePassword(@GetUser() user: User, @Body() changePasswordDto: ChangePasswordDto) {
         return this.authService.changePassword(user.id, changePasswordDto);
+    }
+
+    @Post('request-password-reset')
+    @UsePipes(new ValidateBodyPipe({
+        requiredFields: ['email'],
+        dto: RequestPasswordResetDto
+    }))
+    async requestPasswordReset(@Body() requestPasswordResetDto: RequestPasswordResetDto) {
+        return this.authService.requestPasswordReset(requestPasswordResetDto);
+    }
+
+    @Post('reset-password')
+    @UsePipes(new ValidateBodyPipe({
+        requiredFields: ['token', 'newPassword'],
+        dto: ResetPasswordDto
+    }))
+    async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+        return this.authService.resetPassword(resetPasswordDto);
+    }
+
+    @Get('verify-reset-token/:token')
+    async verifyResetToken(@Param('token') token: string) {
+        return this.authService.verifyResetToken(token);
     }
 }

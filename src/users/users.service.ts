@@ -344,4 +344,29 @@ export class UsersService {
     async updatePassword(userId: string, hashedPassword: string): Promise<void> {
         await this.userRepository.update(userId, { password: hashedPassword });
     }
+
+    async setPasswordResetToken(userId: string, token: string): Promise<void> {
+        const expires = new Date();
+        expires.setMinutes(expires.getMinutes() + 30); // 30 minutes from now
+        
+        await this.userRepository.update(userId, {
+            resetPasswordToken: token,
+            resetPasswordExpires: expires
+        });
+    }
+
+    async findByResetToken(token: string): Promise<User | null> {
+        return await this.userRepository
+            .createQueryBuilder('user')
+            .where('user.resetPasswordToken = :token', { token })
+            .andWhere('user.resetPasswordExpires > :now', { now: new Date() })
+            .getOne();
+    }
+
+    async clearPasswordResetToken(userId: string): Promise<void> {
+        await this.userRepository.update(userId, {
+            resetPasswordToken: undefined,
+            resetPasswordExpires: undefined
+        });
+    }
 }

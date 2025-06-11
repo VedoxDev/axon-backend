@@ -2,17 +2,22 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UsersService } from 'src/users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { RequestPasswordResetDto } from './dto/request-password-reset.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import { User } from 'src/users/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { BadRequestException } from '@nestjs/common';
+import { EmailService } from 'src/common/services/email.service';
 
 @Injectable()
 export class AuthService {
 
     constructor(
         private readonly UsersService: UsersService,
-        private readonly jwtService: JwtService
+        private readonly jwtService: JwtService,
+        private readonly emailService: EmailService
     ) {}
     
     // Validate credentials
@@ -81,6 +86,69 @@ export class AuthService {
 
         return {
             message: 'password-changed-successfully'
+        };
+    }
+
+    // Request password reset
+    async requestPasswordReset(requestPasswordResetDto: RequestPasswordResetDto) {
+        const { email } = requestPasswordResetDto;
+
+        // Find user by email
+        const user = await this.UsersService.findByEmail(email.toLowerCase());
+        
+        // Always return success message to prevent email enumeration
+        const successMessage = { message: 'password-reset-email-sent' };
+
+        if (!user) {
+            return successMessage;
+        }
+
+        // Generate secure token
+        const resetToken = crypto.randomBytes(32).toString('hex');
+
+        // Save token to database
+        await this.UsersService.setPasswordResetToken(user.id, resetToken);
+
+        // Send email
+        await this.emailService.sendPasswordResetEmail(user.email, resetToken);
+
+        return successMessage;
+    }
+
+    // Reset password using token
+    async resetPassword(resetPasswordDto: ResetPasswordDto) {
+        const { token, newPassword } = resetPasswordDto;
+
+        // Find user by token
+        const user = await this.UsersService.findByResetToken(token);
+
+        if (!user) {
+            throw new BadRequestException('invalid-or-expired-token');
+        }
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // Update password and clear reset token
+        await this.UsersService.updatePassword(user.id, hashedPassword);
+        await this.UsersService.clearPasswordResetToken(user.id);
+
+        return {
+            message: 'password-reset-successful'
+        };
+    }
+
+    // Verify reset token (optional endpoint for frontend validation)
+    async verifyResetToken(token: string) {
+        const user = await this.UsersService.findByResetToken(token);
+
+        if (!user) {
+            throw new BadRequestException('invalid-or-expired-token');
+        }
+
+        return {
+            message: 'token-valid',
+            email: user.email
         };
     }
 }

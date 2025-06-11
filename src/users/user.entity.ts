@@ -21,6 +21,12 @@ export class User {
     @Column({ default: "offline"})
     status: "offline" | "online" | "away" | "busy";    
 
+    @Column({ nullable: true })
+    resetPasswordToken?: string;
+
+    @Column({ nullable: true })
+    resetPasswordExpires?: Date;
+
     @OneToMany(() => ProjectMember, member => member.user)
     memberships: ProjectMember[];
 
