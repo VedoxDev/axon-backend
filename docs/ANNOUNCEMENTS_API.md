@@ -1,31 +1,31 @@
-# Announcements API Documentation
+# Documentación de la API de Anuncios
 
-## Overview
+## Descripción General
 
-The Announcements API allows project administrators and owners to create announcements for their projects, and provides users with a personal area to view all announcements from their projects with read tracking capabilities.
+La API de Anuncios permite a los administradores y propietarios de proyectos crear anuncios para sus proyectos, y proporciona a los usuarios un área personal para ver todos los anuncios de sus proyectos con capacidades de seguimiento de lectura.
 
-## Features
+## Características
 
-- ✅ **Project-based announcements** with different types (info, warning, success, urgent)
-- ✅ **Permission control** (only admins/owners can create announcements)
-- ✅ **Read tracking** per user across all announcements
-- ✅ **Pinned announcements** for important messages
-- ✅ **Personal dashboard** showing all announcements from user's projects
-- ✅ **Unread counts** and statistics for better user experience
+- ✅ **Anuncios basados en proyectos** con diferentes tipos (info, warning, success, urgent)
+- ✅ **Control de permisos** (solo admins/propietarios pueden crear anuncios)
+- ✅ **Seguimiento de lectura** por usuario a través de todos los anuncios
+- ✅ **Anuncios fijados** para mensajes importantes
+- ✅ **Panel personal** mostrando todos los anuncios de los proyectos del usuario
+- ✅ **Conteos de no leídos** y estadísticas para mejor experiencia de usuario
 
 ## Endpoints
 
-### 1. Create Project Announcement
+### 1. Crear Anuncio de Proyecto
 
 **URL:** `POST /projects/:projectId/announcements`
 
-**Authentication:** Required (JWT Bearer Token)
+**Autenticación:** Requerida (Token JWT Bearer)
 
-**Authorization:** `MANAGE_ANNOUNCEMENTS` permission (admin/owner only)
+**Autorización:** Permiso `MANAGE_ANNOUNCEMENTS` (solo admin/propietario)
 
 **Content-Type:** `application/json`
 
-#### Request Body
+#### Cuerpo de Solicitud
 
 ```json
 {
@@ -36,45 +36,45 @@ The Announcements API allows project administrators and owners to create announc
 }
 ```
 
-#### Field Requirements
+#### Requisitos de Campos
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `title` | string | Yes | Announcement title (3-200 characters) |
-| `content` | string | Yes | Announcement content (10-2000 characters) |
-| `type` | enum | No | Announcement type (default: "info") |
-| `pinned` | boolean | No | Pin announcement to top (default: false) |
+| Campo | Tipo | Requerido | Descripción |
+|-------|------|-----------|-------------|
+| `title` | string | Sí | Título del anuncio (3-200 caracteres) |
+| `content` | string | Sí | Contenido del anuncio (10-2000 caracteres) |
+| `type` | enum | No | Tipo de anuncio (por defecto: "info") |
+| `pinned` | boolean | No | Fijar anuncio arriba (por defecto: false) |
 
-#### Announcement Types
+#### Tipos de Anuncios
 
-- **`info`** - General information (blue/default styling)
-- **`warning`** - Important warnings (yellow/orange styling)
-- **`success`** - Success notifications (green styling)
-- **`urgent`** - Critical urgent messages (red styling)
+- **`info`** - Información general (estilo azul/por defecto)
+- **`warning`** - Advertencias importantes (estilo amarillo/naranja)
+- **`success`** - Notificaciones de éxito (estilo verde)
+- **`urgent`** - Mensajes críticos urgentes (estilo rojo)
 
-### 2. Get Project Announcements
+### 2. Obtener Anuncios de Proyecto
 
 **URL:** `GET /projects/:projectId/announcements`
 
-**Authentication:** Required (JWT Bearer Token)
+**Autenticación:** Requerida (Token JWT Bearer)
 
-**Authorization:** `VIEW_PROJECT` permission (all project members)
+**Autorización:** Permiso `VIEW_PROJECT` (todos los miembros del proyecto)
 
-### 3. Get User's Announcements (Personal Area)
+### 3. Obtener Anuncios del Usuario (Área Personal)
 
 **URL:** `GET /auth/me/announcements`
 
-**Authentication:** Required (JWT Bearer Token)
+**Autenticación:** Requerida (Token JWT Bearer)
 
-**Authorization:** None (user's own data)
+**Autorización:** Ninguna (datos propios del usuario)
 
-### 4. Mark Announcement as Read
+### 4. Marcar Anuncio como Leído
 
 **URL:** `PUT /announcements/:announcementId/read`
 
-**Authentication:** Required (JWT Bearer Token)
+**Autenticación:** Requerida (Token JWT Bearer)
 
-**Authorization:** User must be member of the project containing the announcement
+**Autorización:** El usuario debe ser miembro del proyecto que contiene el anuncio
 
 ## Response Formats
 
