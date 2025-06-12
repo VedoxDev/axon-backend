@@ -6,22 +6,23 @@ export class EmailService {
     private transporter;
 
     constructor() {
-        // Gmail SMTP - replace with your Gmail credentials
+        // Gmail SMTP configuration using environment variables
         this.transporter = nodemailer.createTransport({
             service: 'gmail',
             auth: {
-                user: 'v.a.fonseca.y@gmail.com',     // Replace with your Gmail
-                pass: 'vbpe zaaw cewd iirs'   // Replace with Gmail App Password
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
             }
         });
     }
 
     async sendPasswordResetEmail(email: string, resetToken: string) {
-        const resetUrl = `https://axon-app.vercel.app//reset-password?token=${resetToken}`; // Frontend URL
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
         
         try {
             const info = await this.transporter.sendMail({
-                from: '"Soporte Axon" <soporte@axon.com>',
+                from: `"${process.env.EMAIL_FROM_NAME || 'Soporte Axon'}" <${process.env.EMAIL_FROM_ADDRESS || process.env.EMAIL_USER}>`,
                 to: email,
                 subject: 'Restablecer tu Contraseña - Axon',
                 html: `
