@@ -17,12 +17,11 @@ export class EmailService {
     }
 
     async sendPasswordResetEmail(email: string, resetToken: string) {
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-        const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
+        const resetUrl = `https://axon-app.vercel.app//reset-password?token=${resetToken}`; // Frontend URL
         
         try {
             const info = await this.transporter.sendMail({
-                from: `"${process.env.EMAIL_FROM_NAME || 'Soporte Axon'}" <${process.env.EMAIL_FROM_ADDRESS || process.env.EMAIL_USER}>`,
+                from: '"Soporte Axon" <soporte@axon.com>',
                 to: email,
                 subject: 'Restablecer tu Contraseña - Axon',
                 html: `
